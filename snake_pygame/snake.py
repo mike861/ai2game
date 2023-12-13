@@ -1,6 +1,7 @@
 import pygame
 import time
 import random
+import math
 
 # Initialize Pygame
 pygame.init()
@@ -32,24 +33,6 @@ clock = pygame.time.Clock()
 font_style = pygame.font.SysFont("bahnschrift", 25)
 score_font = pygame.font.SysFont("comicsansms", 35)
 
-def draw_snake(snake_block, snake_list):
-    """Draw the snake on the display.
-
-    Args:
-        snake_block (int): The size of each block of the snake.
-        snake_list (list): A list of coordinates representing the snake's body.
-
-    The function iterates through the snake_list and draws each block of the snake.
-    It colors the head and tail of the snake differently for visual distinction.
-    """
-    for idx, x in enumerate(snake_list):
-        if idx == 0:
-            color = RED  # Color for the head of the snake
-        elif idx == len(snake_list) - 1:
-            color = GREEN  # Color for the tail of the snake
-        else:
-            color = BLACK  # Color for the rest of the body
-        pygame.draw.rect(dis, color, [x[0], x[1], snake_block, snake_block])
 
 def display_message(msg, color, y_displace=0):
     mesg = font_style.render(msg, True, color)
@@ -129,6 +112,48 @@ class SnakeGame:
             return True
         return False
     
+    def draw_snake(self):
+        head_position = self.snake_list[-1]
+        if self.check_food_collision():
+            # When food is eaten, draw a ring to represent the snake opening its mouth
+            print("check_food_collision")
+            pygame.draw.circle(dis, RED, head_position, self.snake_block // 2 + 3, 3)
+        else:
+            # Normally, draw a solid circle to represent the snake head
+            pygame.draw.ellipse(dis, RED, [head_position[0], head_position[1], self.snake_block, self.snake_block])
+
+        if len(self.snake_list) > 1 :
+            tail_position = self.snake_list[0]
+            prev_position = self.snake_list[1]
+            # Calculate the direction of the snake tail relative to the previous segment
+            direction_x = tail_position[0] - prev_position[0]
+            direction_y = tail_position[1] - prev_position[1]
+
+            # Adjust the center point of the arc based on the direction
+            arc_center_x = tail_position[0] - direction_x / 2
+            arc_center_y = tail_position[1] - direction_y / 2
+
+            # Define the bounding rectangle of the arc
+            rect = pygame.Rect(0, 0, self.snake_block * 2, self.snake_block * 2)
+            rect.center = (arc_center_x, arc_center_y)
+
+            # Calculate the angles of the arc for the snake tail's wagging motion
+            angle = math.atan2(prev_position[1] - tail_position[1], 
+                            prev_position[0] - tail_position[0])
+            start_angle = math.degrees(angle) - 30
+            stop_angle = math.degrees(angle) + 30
+            # Draw the arc to simulate the wagging of the snake tail
+            pygame.draw.arc(dis, GREEN, rect, math.radians(start_angle), math.radians(stop_angle), self.snake_block)
+
+        for idx, x in enumerate(self.snake_list):
+            if idx == 0:
+                continue
+            elif idx == len(self.snake_list) - 1:
+                continue
+            else:
+                color = BLACK  # Color for the rest of the body
+                pygame.draw.rect(dis, color, [x[0], x[1], self.snake_block, self.snake_block])
+
     def update_game_state(self):
         # Update the game state (snake position, food consumption)
         if self.game_pause:
@@ -168,7 +193,8 @@ class SnakeGame:
         dis.fill(BLUE)
         #pygame.draw.rect(dis, GREEN, [self.foodx, self.foody, self.snake_block, self.snake_block])
         pygame.draw.rect(dis, GREEN, [self.foodx, self.foody, SNAKE_BLOCK, SNAKE_BLOCK])
-        draw_snake(self.snake_block, self.snake_list)
+        #draw_snake(self.snake_block, self.snake_list)
+        self.draw_snake()
         display_score(self.length_of_snake - 1)
         pygame.display.update()
 
