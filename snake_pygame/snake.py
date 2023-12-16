@@ -20,7 +20,7 @@ DIS_HEIGHT = 400
 
 # Set initial size and speed of the snake
 SNAKE_BLOCK = 10
-SNAKE_SPEED = 10
+SNAKE_SPEED = 5
 
 # Initialize display screen
 dis = pygame.display.set_mode((DIS_WIDTH, DIS_HEIGHT))
@@ -112,6 +112,34 @@ class SnakeGame:
             return True
         return False
     
+    def calculate_tail_swing_properties(self):
+        center_x, center_y, start_angle, stop_angle = None, None, None, None
+
+        if len(self.snake_list) > 1:
+            tail_position = self.snake_list[0]
+            prev_position = self.snake_list[1]
+            if tail_position[0] > prev_position[0]:  # move left
+                center_x = tail_position[0]
+                center_y = tail_position[1] + (self.snake_block / 2)
+                start_angle = -30
+                stop_angle = 30
+            elif tail_position[0] < prev_position[0]:  # move right
+                center_x = tail_position[0] + self.snake_block
+                center_y = tail_position[1] + (self.snake_block / 2)
+                start_angle = 150
+                stop_angle = -150
+            elif tail_position[1] > prev_position[1]:  # move up
+                center_x = tail_position[0] + (self.snake_block / 2)
+                center_y = tail_position[1]
+                start_angle = -120
+                stop_angle = -60
+            elif tail_position[1] < prev_position[1]:  # move down
+                center_x = tail_position[0] + (self.snake_block / 2)
+                center_y = tail_position[1] + self.snake_block
+                start_angle = 60
+                stop_angle = 120
+        return center_x, center_y, start_angle, stop_angle
+        
     def draw_snake(self):
         head_position = self.snake_list[-1]
         if self.check_food_collision():
@@ -125,23 +153,12 @@ class SnakeGame:
         if len(self.snake_list) > 1 :
             tail_position = self.snake_list[0]
             prev_position = self.snake_list[1]
-            # Calculate the direction of the snake tail relative to the previous segment
-            direction_x = tail_position[0] - prev_position[0]
-            direction_y = tail_position[1] - prev_position[1]
-
-            # Adjust the center point of the arc based on the direction
-            arc_center_x = tail_position[0] - direction_x / 2
-            arc_center_y = tail_position[1] - direction_y / 2
+            arc_center_x, arc_center_y,start_angle,stop_angle = self.calculate_tail_swing_properties()
 
             # Define the bounding rectangle of the arc
             rect = pygame.Rect(0, 0, self.snake_block * 2, self.snake_block * 2)
             rect.center = (arc_center_x, arc_center_y)
 
-            # Calculate the angles of the arc for the snake tail's wagging motion
-            angle = math.atan2(prev_position[1] - tail_position[1], 
-                            prev_position[0] - tail_position[0])
-            start_angle = math.degrees(angle) - 30
-            stop_angle = math.degrees(angle) + 30
             # Draw the arc to simulate the wagging of the snake tail
             pygame.draw.arc(dis, GREEN, rect, math.radians(start_angle), math.radians(stop_angle), self.snake_block)
 
