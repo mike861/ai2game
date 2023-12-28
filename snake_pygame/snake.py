@@ -1,4 +1,5 @@
 import pygame
+import pygame.gfxdraw
 import time
 import random
 import math
@@ -58,17 +59,21 @@ class SnakeGame:
         self.length_of_snake = 1
         self.snake_speed = SNAKE_SPEED
         self.snake_block = SNAKE_BLOCK
+        self.direction = 'left'  # init head to left
 
         # Food properties
         self.food_count = 0
         self.foodx, self.foody = self.generate_food()
 
+        self.frame_count = 0
+
     def generate_food(self):
         # Generate food in a random position
         while True:
-            #foodx = round(random.randrange(0, DIS_WIDTH - self.snake_block) / 10.0) * 10.0
-            foodx = round(random.randrange(0, DIS_WIDTH - SNAKE_BLOCK) / 10.0) * 10.0
-            foody = round(random.randrange(0, DIS_HEIGHT - SNAKE_BLOCK) / 10.0) * 10.0
+            foodx = round(random.randrange(0, DIS_WIDTH - self.snake_block) / 10.0) * 10.0
+            foody = round(random.randrange(0, DIS_HEIGHT - self.snake_block) / 10.0) * 10.0
+            #foodx = round(random.randrange(0, DIS_WIDTH - SNAKE_BLOCK) / 10.0) * 10.0
+            #foody = round(random.randrange(0, DIS_HEIGHT - SNAKE_BLOCK) / 10.0) * 10.0
             if [foodx, foody] not in self.snake_list:
                 return foodx, foody
 
@@ -83,12 +88,16 @@ class SnakeGame:
                 # Snake movement controls
                 if event.key == pygame.K_LEFT and self.x1_change == 0:
                     self.x1_change, self.y1_change = -self.snake_block, 0
+                    self.direction = 'left'
                 elif event.key == pygame.K_RIGHT and self.x1_change == 0:
                     self.x1_change, self.y1_change = self.snake_block, 0
+                    self.direction = 'right'
                 elif event.key == pygame.K_UP and self.y1_change == 0:
                     self.x1_change, self.y1_change = 0, -self.snake_block
+                    self.direction = 'up'
                 elif event.key == pygame.K_DOWN and self.y1_change == 0:
                     self.x1_change, self.y1_change = 0, self.snake_block
+                    self.direction = 'down'
 
     def check_food_collision2(self):
         """Check if the snake has collided with the food."""
@@ -111,6 +120,24 @@ class SnakeGame:
            self.foody <= head_center_y < self.foody + self.snake_block:
             return True
         return False
+    
+    def calculate_head_properties(self):
+        start_angle, stop_angle = None, None
+
+        if  'left' == self.direction:  # move left
+            start_angle = -140
+            stop_angle = 140
+        elif 'right' == self.direction:  # move right
+            start_angle = 40
+            stop_angle = -40
+        elif 'up' == self.direction:  # move up
+            start_angle = -50
+            stop_angle = -130
+        elif 'down' == self.direction:  # move down
+            start_angle = 130
+            stop_angle = 50
+
+        return start_angle, stop_angle
     
     def calculate_tail_swing_properties(self):
         center_x, center_y, start_angle, stop_angle = None, None, None, None
@@ -138,6 +165,11 @@ class SnakeGame:
                 center_y = tail_position[1] + self.snake_block
                 start_angle = 60
                 stop_angle = 120
+
+            angle_tail = [-2,-1,0,1,2]
+            angle_index = (int(self.frame_count/2) % 5) 
+            start_angle += (angle_tail[angle_index] * 10)
+            stop_angle += (angle_tail[angle_index] * 10)
         return center_x, center_y, start_angle, stop_angle
         
     def draw_snake(self):
@@ -148,17 +180,17 @@ class SnakeGame:
             pygame.draw.circle(dis, RED, head_position, self.snake_block // 2 + 3, 3)
         else:
             # Normally, draw a solid circle to represent the snake head
-            pygame.draw.ellipse(dis, RED, [head_position[0], head_position[1], self.snake_block, self.snake_block])
+            start_angle,stop_angle = self.calculate_head_properties()
+            #rect = pygame.Rect(head_position, (self.snake_block, self.snake_block))
+            #pygame.draw.arc(dis, RED, rect, math.radians(start_angle), math.radians(stop_angle), self.snake_block)
+            radius = int(self.snake_block/2)
+            pygame.gfxdraw.pie(dis, int(head_position[0]+radius), int(head_position[1]+radius), radius, start_angle, stop_angle, RED)
 
         if len(self.snake_list) > 1 :
-            tail_position = self.snake_list[0]
-            prev_position = self.snake_list[1]
             arc_center_x, arc_center_y,start_angle,stop_angle = self.calculate_tail_swing_properties()
-
             # Define the bounding rectangle of the arc
             rect = pygame.Rect(0, 0, self.snake_block * 2, self.snake_block * 2)
             rect.center = (arc_center_x, arc_center_y)
-
             # Draw the arc to simulate the wagging of the snake tail
             pygame.draw.arc(dis, GREEN, rect, math.radians(start_angle), math.radians(stop_angle), self.snake_block)
 
@@ -208,8 +240,8 @@ class SnakeGame:
     def render_game(self):
         # Render the game state to the screen
         dis.fill(BLUE)
-        #pygame.draw.rect(dis, GREEN, [self.foodx, self.foody, self.snake_block, self.snake_block])
-        pygame.draw.rect(dis, GREEN, [self.foodx, self.foody, SNAKE_BLOCK, SNAKE_BLOCK])
+        pygame.draw.rect(dis, GREEN, [self.foodx, self.foody, self.snake_block, self.snake_block])
+        #pygame.draw.rect(dis, GREEN, [self.foodx, self.foody, SNAKE_BLOCK, SNAKE_BLOCK])
         #draw_snake(self.snake_block, self.snake_list)
         self.draw_snake()
         display_score(self.length_of_snake - 1)
@@ -221,6 +253,7 @@ class SnakeGame:
                 # Handle game close logic
                 dis.fill(BLUE)
                 display_message("You Lost! Press Q-Quit or C-Play Again", RED)
+                #self.render_game()
                 pygame.display.update()
 
                 #print("game_close")
@@ -237,6 +270,7 @@ class SnakeGame:
             self.update_game_state()
             self.render_game()
             #print("tick")
+            self.frame_count += 1
             clock.tick(self.snake_speed)
 
         print("game_over")
